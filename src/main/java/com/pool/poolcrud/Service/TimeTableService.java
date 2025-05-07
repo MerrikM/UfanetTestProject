@@ -1,5 +1,7 @@
 package com.pool.poolcrud.Service;
 
+import com.pool.poolcrud.Controller.ClientController;
+import com.pool.poolcrud.Model.Client;
 import com.pool.poolcrud.Model.Pool;
 import com.pool.poolcrud.Model.TimeTable;
 import com.pool.poolcrud.Model.WorkSchedule;
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 
@@ -20,13 +23,11 @@ public class TimeTableService {
     private final TimeTableRepository timeTableRepository;
     private final PoolRepository poolRepository;
     private final WorkScheduleRepository workScheduleRepository;
-    private final WorkScheduleService workScheduleService;
 
-    public TimeTableService(TimeTableRepository timeTableRepository, PoolRepository poolRepository, WorkScheduleRepository workScheduleRepository, WorkScheduleService workScheduleService) {
+    public TimeTableService(TimeTableRepository timeTableRepository, PoolRepository poolRepository, WorkScheduleRepository workScheduleRepository) {
         this.timeTableRepository = timeTableRepository;
         this.poolRepository = poolRepository;
         this.workScheduleRepository = workScheduleRepository;
-        this.workScheduleService = workScheduleService;
     }
 
     @Transactional(readOnly = true)
@@ -54,6 +55,34 @@ public class TimeTableService {
         }
 
         return availableTime;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getOccupied(Long poolId, LocalDate date) {
+        Pool pool = poolRepository.findById(poolId)
+                .orElseThrow(() -> new RuntimeException("Запись не найдена в БД"));
+        DayOfWeek dayOfWeek = date.getDayOfWeek();
+
+        WorkSchedule workSchedule = workScheduleRepository.findByPoolIdAndDayOfWeek(poolId, dayOfWeek);
+
+        if (workSchedule.isHoliday()) {
+            return Collections.emptyList(); // Возвращаем пустой список вместо null
+        }
+
+        List<TimeTable> timeTableList = timeTableRepository.findByPoolIdAndDate(poolId, date);
+        List<Map<String, Object>> occupiedTime = new ArrayList<>();
+
+        for (TimeTable timeSlot : timeTableList) {
+            int occupied = timeSlot.getCurrentBookings();
+            if (occupied > 0) {
+                Map<String, Object> occupiedSlot = new HashMap<>();
+                occupiedSlot.put("time", timeSlot.getTime().toString());
+                occupiedSlot.put("count", occupied);
+                occupiedTime.add(occupiedSlot);
+            }
+        }
+
+        return occupiedTime;
     }
 
     @Transactional
