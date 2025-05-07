@@ -1,5 +1,6 @@
 package com.pool.poolcrud.Model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -14,6 +15,7 @@ public class Reservation {
 
     @ManyToOne
     @JoinColumn(name = "client_id", nullable = false)
+    @JsonBackReference
     private Client client;
 
     @ManyToOne
@@ -22,12 +24,16 @@ public class Reservation {
 
     private LocalDateTime createdAt;
 
+    @Column(unique = true)
+    private String orderId;
+
     public Reservation() {}
 
-    public Reservation(Client client, TimeTable timeTable, LocalDateTime createdAt) {
+    public Reservation(Client client, TimeTable timeTable, LocalDateTime createdAt, String orderId) {
         this.client = client;
         this.timeTable = timeTable;
         this.createdAt = createdAt;
+        this.orderId = orderId;
     }
 
     public Long getId() {
@@ -60,5 +66,13 @@ public class Reservation {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(String orderId) {
+        this.orderId = orderId;
     }
 }
