@@ -1,5 +1,6 @@
 package com.pool.poolcrud.Model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
@@ -21,6 +22,7 @@ public class TimeTable {
 
     @ManyToOne
     @JoinColumn(name = "pool_id", nullable = false)
+    @JsonBackReference
     private Pool pool;
 
     @Column(nullable = false)
