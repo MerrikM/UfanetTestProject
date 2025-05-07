@@ -54,4 +54,11 @@ public class PoolController {
         return ResponseEntity.ok(slots);
     }
 
+    @GetMapping("/{id}/timetable/all")
+    public ResponseEntity<List<Map<String, Object>>> getOccupied(@PathVariable("id") Long poolId, @RequestParam String date) {
+        LocalDate localDate = LocalDate.parse(date);
+        List<Map<String, Object>> slots = timeTableService.getOccupied(poolId, localDate);
+        return ResponseEntity.ok(slots);
+    }
+
 }
