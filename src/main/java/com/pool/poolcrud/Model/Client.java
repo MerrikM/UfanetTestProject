@@ -1,8 +1,12 @@
 package com.pool.poolcrud.Model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "client")
@@ -25,14 +29,19 @@ public class Client {
     @Column(unique = true)
     private String email;
 
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<Reservation> reservations = new ArrayList<>();
+
     public Client() {}
 
-    public Client(String name, String surname, String patronymic, String number, String email) {
+    public Client(String name, String surname, String patronymic, String number, String email, List<Reservation> reservations) {
         this.name = name;
         this.surname = surname;
         this.patronymic = patronymic;
         this.number = number;
         this.email = email;
+        this.reservations = reservations;
     }
 
     public Long getId() {
@@ -81,5 +90,13 @@ public class Client {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public List<Reservation> getReservations() {
+        return reservations;
+    }
+
+    public void setReservations(List<Reservation> reservations) {
+        this.reservations = reservations;
     }
 }
