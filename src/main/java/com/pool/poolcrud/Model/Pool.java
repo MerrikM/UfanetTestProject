@@ -1,5 +1,6 @@
 package com.pool.poolcrud.Model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ public class Pool {
     private int maxCapacity;
 
     @OneToMany(mappedBy = "pool", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<TimeTable> timeTables;
 
     @OneToMany(mappedBy = "pool", cascade = CascadeType.ALL)
