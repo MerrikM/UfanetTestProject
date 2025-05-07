@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
@@ -21,12 +22,14 @@ public class PoolService {
     private final TimeTableRepository timeTableRepository;
     private final WorkScheduleRepository workScheduleRepository;
     private final WorkScheduleService workScheduleService;
+    private final TimeTableService timeTableService;
 
-    public PoolService(PoolRepository poolRepository, TimeTableRepository timeTableRepository, WorkScheduleRepository workScheduleRepository, WorkScheduleService workScheduleService) {
+    public PoolService(PoolRepository poolRepository, TimeTableRepository timeTableRepository, WorkScheduleRepository workScheduleRepository, WorkScheduleService workScheduleService, TimeTableService timeTableService) {
         this.poolRepository = poolRepository;
         this.timeTableRepository = timeTableRepository;
         this.workScheduleRepository = workScheduleRepository;
         this.workScheduleService = workScheduleService;
+        this.timeTableService = timeTableService;
     }
 
     @Transactional(readOnly = true)
@@ -52,6 +55,8 @@ public class PoolService {
         poolRepository.save(pool);
 
         workScheduleService.setupDefaultWorkSchedule(pool);
+
+        timeTableService.generateTimeTable(pool.getId(), LocalDate.now(), LocalDate.now().plusMonths(1));
 
 //        WorkSchedule workSchedule = new WorkSchedule();
 //        workSchedule.setPool(pool);
