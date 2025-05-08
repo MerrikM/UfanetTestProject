@@ -24,7 +24,7 @@ public class PoolController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<Pool> createPool(@RequestBody Pool pool) throws JsonProcessingException {
+    public ResponseEntity<Pool> createPool(@RequestBody PoolCreateRequest pool) throws JsonProcessingException {
         Pool newPool = new Pool();
         newPool.setName(pool.getName());
 
@@ -61,4 +61,24 @@ public class PoolController {
         return ResponseEntity.ok(slots);
     }
 
+    public static class PoolCreateRequest {
+        private String name;
+        private int maxCapacity;
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public int getMaxCapacity() {
+            return maxCapacity;
+        }
+
+        public void setMaxCapacity(int maxCapacity) {
+            this.maxCapacity = maxCapacity;
+        }
+    }
 }
