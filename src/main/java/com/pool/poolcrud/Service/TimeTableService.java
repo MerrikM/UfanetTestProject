@@ -45,7 +45,7 @@ public class TimeTableService {
         List<Map<String, Object>> availableTime = new ArrayList<>();
 
         for (int i = 0; i < timeTableList.size() - 1; i++) {
-            int available = pool.getMaxCapacity() - timeTableList.get(i).getCurrentBookings();
+            int available = timeTableList.get(i).getRemainingCapacity() - timeTableList.get(i).getCurrentBookings();
             if (available > 0) {
                 Map<String, Object> availableSlot = new HashMap<>();
                 availableSlot.put("time", timeTableList.get(i).getTime().toString());
@@ -126,7 +126,8 @@ public class TimeTableService {
                     date,
                     currentTime,
                     pool,
-                    0
+                    0,
+                    pool.getMaxCapacity() / 12
             );
 
             timeTableList.add(slot);
