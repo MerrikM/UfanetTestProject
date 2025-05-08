@@ -27,6 +27,9 @@ public class Pool {
     @OneToMany(mappedBy = "pool", cascade = CascadeType.ALL)
     private List<WorkSchedule> workSchedules;
 
+    @OneToMany(mappedBy = "pool", cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private List<Reservation> reservations;
 
     public Pool() {}
 
@@ -34,6 +37,7 @@ public class Pool {
         this.name = name;
         this.maxCapacity = maxCapacity;
         this.timeTables = new ArrayList<>();
+        this.reservations = new ArrayList<>();
     }
 
     public Long getId() {
@@ -74,5 +78,13 @@ public class Pool {
 
     public void setWorkSchedules(List<WorkSchedule> workSchedules) {
         this.workSchedules = workSchedules;
+    }
+
+    public List<Reservation> getReservations() {
+        return reservations;
+    }
+
+    public void setReservations(List<Reservation> reservations) {
+        this.reservations = reservations;
     }
 }
