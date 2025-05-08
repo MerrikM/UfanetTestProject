@@ -47,6 +47,20 @@ public class ReservationService {
         return reservationRepository.findAll();
     }
 
+    @Transactional(readOnly = true)
+    public List<Reservation> getByFIO(String clientName, String clientSurname, String clientPatronymic) {
+        return reservationRepository.findByClient_NameAndClient_SurnameAndClient_Patronymic(
+                clientName,
+                clientSurname,
+                clientPatronymic
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<Reservation> getByReservationDay(LocalDate date) {
+        return reservationRepository.findByTimeTable_Date(date);
+    }
+
     @Transactional
     public Reservation reserve(Long clientId, Long poolId, LocalDateTime dateTime) {
         Client client = clientService.getById(clientId);
@@ -71,14 +85,22 @@ public class ReservationService {
                 client,
                 timeTable,
                 LocalDateTime.now(),
-                orderId
+                orderId,
+                pool
         );
 
         if (!existOrderId(orderId)) {
-            reservationRepository.save(reservation);
+            if (timeTable.getCurrentBookings() <= timeTable.getRemainingCapacity()) {
+                reservationRepository.save(reservation);
 
-            timeTable.setCurrentBookings(timeTable.getCurrentBookings() + 1);
-            timeTableRepository.save(timeTable);
+                timeTable.setCurrentBookings(timeTable.getCurrentBookings() + 1);
+                timeTable.setRemainingCapacity(
+                        timeTable.getRemainingCapacity() - timeTable.getCurrentBookings()
+                );
+                timeTableRepository.save(timeTable);
+            } else {
+                throw new IllegalArgumentException("Свободных мест в бассейне нет");
+            }
         } else {
             throw new IllegalArgumentException("Вы уже записаны на это время");
         }
