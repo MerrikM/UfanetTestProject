@@ -22,6 +22,11 @@ public class Reservation {
     @JoinColumn(name = "timetable_id", nullable = false)
     private TimeTable timeTable;
 
+    @ManyToOne
+    @JoinColumn(name = "pool_id", nullable = false)
+    @JsonBackReference
+    private Pool pool;
+
     private LocalDateTime createdAt;
 
     @Column(unique = true)
@@ -29,11 +34,12 @@ public class Reservation {
 
     public Reservation() {}
 
-    public Reservation(Client client, TimeTable timeTable, LocalDateTime createdAt, String orderId) {
+    public Reservation(Client client, TimeTable timeTable, LocalDateTime createdAt, String orderId, Pool pool) {
         this.client = client;
         this.timeTable = timeTable;
         this.createdAt = createdAt;
         this.orderId = orderId;
+        this.pool = pool;
     }
 
     public Long getId() {
@@ -74,5 +80,13 @@ public class Reservation {
 
     public void setOrderId(String orderId) {
         this.orderId = orderId;
+    }
+
+    public Pool getPool() {
+        return pool;
+    }
+
+    public void setPool(Pool pool) {
+        this.pool = pool;
     }
 }
