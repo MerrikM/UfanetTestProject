@@ -28,13 +28,17 @@ public class TimeTable {
     @Column(nullable = false)
     private int currentBookings = 0;
 
+    @Column(nullable = false)
+    private int remainingCapacity;
+
     public TimeTable() {}
 
-    public TimeTable(LocalDate date, LocalTime time, Pool pool, int currentBookings) {
+    public TimeTable(LocalDate date, LocalTime time, Pool pool, int currentBookings, int remainingCapacity) {
         this.date = date;
         this.time = time;
         this.pool = pool;
         this.currentBookings = currentBookings;
+        this.remainingCapacity = remainingCapacity;
     }
 
     public Long getId() {
@@ -75,5 +79,13 @@ public class TimeTable {
 
     public void setCurrentBookings(int currentBookings) {
         this.currentBookings = currentBookings;
+    }
+
+    public int getRemainingCapacity() {
+        return remainingCapacity;
+    }
+
+    public void setRemainingCapacity(int remainingCapacity) {
+        this.remainingCapacity = remainingCapacity;
     }
 }
