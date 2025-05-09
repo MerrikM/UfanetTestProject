@@ -1,12 +1,12 @@
 package com.pool.poolcrud.Service;
 
+import com.pool.poolcrud.DTO.ClientDTO;
 import com.pool.poolcrud.Model.Client;
-import com.pool.poolcrud.Model.Pool;
 import com.pool.poolcrud.Repository.ClientRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -21,7 +21,7 @@ public class ClientService {
     @Transactional(readOnly = true)
     public Client getById(Long id) {
         return clientRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Пользователь в БД не найден")
+                () -> new EntityNotFoundException("Пользователь в БД не найден")
         );
     }
 
@@ -31,33 +31,39 @@ public class ClientService {
     }
 
     @Transactional
-    public Client createClient(Client newClient) {
+    public Client createClient(ClientDTO clientDTO) {
         Client client = new Client();
-        client.setName(newClient.getName());
-        client.setSurname(newClient.getSurname());
-        client.setPatronymic(newClient.getPatronymic());
-        client.setNumber(newClient.getNumber());
-        client.setEmail(newClient.getEmail());
+        client.setName(clientDTO.getName());
+        client.setSurname(clientDTO.getSurname());
+        client.setPatronymic(clientDTO.getPatronymic());
+        client.setNumber(clientDTO.getNumber());
+        client.setEmail(clientDTO.getEmail());
 
-        clientRepository.save(client);
+        return clientRepository.save(client);
 
-        return client;
     }
 
     @Transactional
-    public Client updateClient(Long id, Client clientWhoBeUpdated) {
+    public Client updateClient(Long id, ClientDTO clientWhoBeUpdated) {
         Client client = getById(id);
-        if (client.getId() == null) {
-            System.out.println("Бассейн не найден в БД");
-            return null;
-        }
 
         client.setName(clientWhoBeUpdated.getName());
         client.setSurname(clientWhoBeUpdated.getSurname());
         client.setPatronymic(clientWhoBeUpdated.getPatronymic());
         client.setNumber(clientWhoBeUpdated.getNumber());
-        client.setEmail(clientWhoBeUpdated.getEmail());
+
+        if (!client.getEmail().equals(clientWhoBeUpdated.getEmail())) {
+            if (clientRepository.existsClientByEmail((clientWhoBeUpdated.getEmail()))) {
+                throw new IllegalArgumentException("Данная почта уже занята");
+            }
+            client.setEmail(clientWhoBeUpdated.getEmail());
+        }
 
         return clientRepository.save(client);
+    }
+
+    @Transactional
+    public void deleteClient(Long id) {
+        clientRepository.deleteById(id);
     }
 }
