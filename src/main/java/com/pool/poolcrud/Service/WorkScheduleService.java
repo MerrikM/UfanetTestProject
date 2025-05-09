@@ -26,7 +26,7 @@ public class WorkScheduleService {
             workSchedule.setPool(pool);
             workSchedule.setDayOfWeek(day);
             if (day == DayOfWeek.SUNDAY) {
-                workSchedule.setHoliday(true);
+                workSchedule.setDayOf(true);
             }
             workSchedule.setOpenTime(LocalTime.of(8, 0));
             workSchedule.setCloseTime(LocalTime.of(21, 0));
