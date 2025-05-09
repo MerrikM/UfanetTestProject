@@ -1,11 +1,13 @@
 package com.pool.poolcrud.Service;
 
+import com.pool.poolcrud.DTO.PoolDTO;
 import com.pool.poolcrud.Model.Pool;
 import com.pool.poolcrud.Model.TimeTable;
 import com.pool.poolcrud.Model.WorkSchedule;
 import com.pool.poolcrud.Repository.PoolRepository;
 import com.pool.poolcrud.Repository.TimeTableRepository;
 import com.pool.poolcrud.Repository.WorkScheduleRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -20,14 +22,12 @@ public class PoolService {
 
     private final PoolRepository poolRepository;
     private final TimeTableRepository timeTableRepository;
-    private final WorkScheduleRepository workScheduleRepository;
     private final WorkScheduleService workScheduleService;
     private final TimeTableService timeTableService;
 
-    public PoolService(PoolRepository poolRepository, TimeTableRepository timeTableRepository, WorkScheduleRepository workScheduleRepository, WorkScheduleService workScheduleService, TimeTableService timeTableService) {
+    public PoolService(PoolRepository poolRepository, TimeTableRepository timeTableRepository, WorkScheduleService workScheduleService, TimeTableService timeTableService) {
         this.poolRepository = poolRepository;
         this.timeTableRepository = timeTableRepository;
-        this.workScheduleRepository = workScheduleRepository;
         this.workScheduleService = workScheduleService;
         this.timeTableService = timeTableService;
     }
@@ -35,7 +35,7 @@ public class PoolService {
     @Transactional(readOnly = true)
     public Pool getPoolById(Long id) {
         return poolRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Бассейн не найден в БД")
+                () -> new EntityNotFoundException("Бассейн не найден в БД")
         );
     }
 
@@ -45,11 +45,12 @@ public class PoolService {
     }
 
     @Transactional
-    public Pool createPool(Pool newPool, int maxCapacity) {
+    public Pool createPool(PoolDTO newPool) {
 
         Pool pool = new Pool();
         pool.setName(newPool.getName());
-        pool.setMaxCapacity(maxCapacity);
+        pool.setMaxCapacity(newPool.getMaxCapacity());
+        pool.setMaxVisitsPerDay(newPool.getMaxVisitsPerDay());
         pool.setTimeTables(Collections.emptyList());
 
         poolRepository.save(pool);
@@ -58,23 +59,14 @@ public class PoolService {
 
         timeTableService.generateTimeTable(pool.getId(), LocalDate.now(), LocalDate.now().plusMonths(1));
 
-//        WorkSchedule workSchedule = new WorkSchedule();
-//        workSchedule.setPool(pool);
-//        workSchedule.setOpenTime(openTime);
-//        workSchedule.setCloseTime(closeTime);
-//        workSchedule.setHoliday(false);
-//
-//        workScheduleRepository.save(workSchedule);
+
         return pool;
     }
 
     @Transactional
-    public Pool updatePool(Long id, Pool poolWhoBeUpdated) {
+    public Pool updatePool(Long id, PoolDTO poolWhoBeUpdated) {
         Pool pool = getPoolById(id);
-        if (pool.getId() == null) {
-            System.out.println("Бассейн не найден в БД");
-            return null;
-        }
+
         pool.setName(poolWhoBeUpdated.getName());
         pool.setMaxCapacity(poolWhoBeUpdated.getMaxCapacity());
 
