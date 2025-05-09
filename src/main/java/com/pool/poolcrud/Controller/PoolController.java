@@ -1,9 +1,12 @@
 package com.pool.poolcrud.Controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.pool.poolcrud.DTO.Pool.PoolCreateRequest;
+import com.pool.poolcrud.DTO.PoolDTO;
 import com.pool.poolcrud.Model.Pool;
 import com.pool.poolcrud.Service.PoolService;
 import com.pool.poolcrud.Service.TimeTableService;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,62 +26,66 @@ public class PoolController {
         this.timeTableService = timeTableService;
     }
 
+    @GetMapping("{id}/get")
+    public ResponseEntity<?> getPool(@PathVariable("id") Long id) {
+        try {
+            Pool pool = poolService.getPoolById(id);
+            return ResponseEntity.ok(pool);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<?> getAllPools() {
+        List<Pool> pools = poolService.getPools();
+        return ResponseEntity.ok(pools);
+    }
+
     @PostMapping("/create")
-    public ResponseEntity<Pool> createPool(@RequestBody PoolCreateRequest pool) throws JsonProcessingException {
-        Pool newPool = new Pool();
-        newPool.setName(pool.getName());
-
-        Pool createdPool = poolService.createPool(
-                newPool,
-                pool.getMaxCapacity()
-        );
-
-        return ResponseEntity.ok(createdPool);
+    public ResponseEntity<Pool> createPool(@RequestBody PoolDTO pool) {
+        return ResponseEntity.ok(poolService.createPool(pool));
     }
 
     @PostMapping("/{id}/update")
-    public ResponseEntity<Pool> updatePool(@PathVariable("id") Long id, @RequestBody Pool pool) {
-        Pool updatedPool = poolService.updatePool(id, pool);
+    public ResponseEntity<?> updatePool(@PathVariable("id") Long id, @RequestBody PoolDTO pool) {
+        try {
+            Pool updatedPool = poolService.updatePool(id, pool);
 
-        if (updatedPool == null) {
-            return ResponseEntity.notFound().build();
+            if (updatedPool == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(updatedPool);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-
-        return ResponseEntity.ok(updatedPool);
     }
 
     @GetMapping("/{id}/timetable/available")
     public ResponseEntity<List<Map<String, Object>>> getAvailable(@PathVariable("id") Long poolId, @RequestParam String date) {
-        LocalDate localDate = LocalDate.parse(date);
-        List<Map<String, Object>> slots = timeTableService.getAvailable(poolId, localDate);
-        return ResponseEntity.ok(slots);
+        try {
+            LocalDate localDate = LocalDate.parse(date);
+            List<Map<String, Object>> slots = timeTableService.getAvailable(poolId, localDate);
+            return ResponseEntity.ok(slots);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping("/{id}/timetable/all")
     public ResponseEntity<List<Map<String, Object>>> getOccupied(@PathVariable("id") Long poolId, @RequestParam String date) {
-        LocalDate localDate = LocalDate.parse(date);
-        List<Map<String, Object>> slots = timeTableService.getOccupied(poolId, localDate);
-        return ResponseEntity.ok(slots);
+        try {
+            LocalDate localDate = LocalDate.parse(date);
+            List<Map<String, Object>> slots = timeTableService.getOccupied(poolId, localDate);
+            return ResponseEntity.ok(slots);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    public static class PoolCreateRequest {
-        private String name;
-        private int maxCapacity;
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public int getMaxCapacity() {
-            return maxCapacity;
-        }
-
-        public void setMaxCapacity(int maxCapacity) {
-            this.maxCapacity = maxCapacity;
-        }
+    @DeleteMapping("/{id}/delete")
+    public ResponseEntity<?> deleteClient(@PathVariable Long id) {
+        poolService.deletePool(id);
+        return ResponseEntity.ok().build();
     }
 }
