@@ -11,9 +11,11 @@ import java.util.List;
 
 @Repository
 public interface TimeTableRepository extends JpaRepository<TimeTable, Long> {
-    List<TimeTable> findByPoolId(Long poolId);
     List<TimeTable> findByPoolIdAndCurrentBookingsLessThan(Long poolId, int maxBookings);
 
     List<TimeTable> findByPoolIdAndDate(Long poolId, LocalDate date);
     TimeTable findByPoolAndDateAndTime(Pool pool, LocalDate date, LocalTime time);
+    List<TimeTable> findByPoolAndDateAndTimeBetween(Pool pool, LocalDate date, LocalTime start, LocalTime end);
+
+    void deleteByDate(LocalDate date);
 }
