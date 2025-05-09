@@ -20,6 +20,9 @@ public class Pool {
     @Column(nullable = false)
     private int maxCapacity;
 
+    @Column(nullable = false)
+    private int maxVisitsPerDay;
+
     @OneToMany(mappedBy = "pool", cascade = CascadeType.ALL)
     @JsonManagedReference
     private List<TimeTable> timeTables;
@@ -31,13 +34,18 @@ public class Pool {
     @JsonManagedReference
     private List<Reservation> reservations;
 
+    @OneToMany(mappedBy = "pool", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Client> clients;
+
     public Pool() {}
 
-    public Pool(String name, int maxCapacity) {
+    public Pool(String name, int maxCapacity, int maxVisitsPerDay) {
         this.name = name;
         this.maxCapacity = maxCapacity;
+        this.maxVisitsPerDay = maxVisitsPerDay;
         this.timeTables = new ArrayList<>();
         this.reservations = new ArrayList<>();
+        this.clients = new ArrayList<>();
     }
 
     public Long getId() {
@@ -86,5 +94,21 @@ public class Pool {
 
     public void setReservations(List<Reservation> reservations) {
         this.reservations = reservations;
+    }
+
+    public int getMaxVisitsPerDay() {
+        return maxVisitsPerDay;
+    }
+
+    public void setMaxVisitsPerDay(int maxVisitsPerDay) {
+        this.maxVisitsPerDay = maxVisitsPerDay;
+    }
+
+    public List<Client> getClients() {
+        return clients;
+    }
+
+    public void setClients(List<Client> clients) {
+        this.clients = clients;
     }
 }
