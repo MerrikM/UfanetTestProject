@@ -33,6 +33,9 @@ public class Client {
     @JsonManagedReference
     private List<Reservation> reservations = new ArrayList<>();
 
+    @ManyToOne
+    private Pool pool;
+
     public Client() {}
 
     public Client(String name, String surname, String patronymic, String number, String email, List<Reservation> reservations) {
