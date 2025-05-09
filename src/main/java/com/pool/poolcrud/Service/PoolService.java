@@ -78,20 +78,4 @@ public class PoolService {
     public void deletePool(Long id) {
         poolRepository.deleteById(id);
     }
-
-    @Transactional(readOnly = true)
-    public List<TimeTable> getAvailableTime(Long id) {
-        Pool pool = getPoolById(id);
-        if (pool.getId() == null) {
-            System.out.println("Бассейн не найден в БД");
-            return null;
-        }
-
-        List<TimeTable> timeTables = timeTableRepository.findByPoolIdAndCurrentBookingsLessThan(
-                id,
-                pool.getMaxCapacity()
-        );
-
-        return timeTables;
-    }
 }
