@@ -32,14 +32,17 @@ public class Reservation {
     @Column(unique = true)
     private String orderId;
 
+    private boolean finalized;
+
     public Reservation() {}
 
-    public Reservation(Client client, TimeTable timeTable, LocalDateTime createdAt, String orderId, Pool pool) {
+    public Reservation(Client client, TimeTable timeTable, LocalDateTime createdAt, String orderId, Pool pool, boolean finalized) {
         this.client = client;
         this.timeTable = timeTable;
         this.createdAt = createdAt;
         this.orderId = orderId;
         this.pool = pool;
+        this.finalized = finalized;
     }
 
     public Long getId() {
@@ -88,5 +91,13 @@ public class Reservation {
 
     public void setPool(Pool pool) {
         this.pool = pool;
+    }
+
+    public boolean isFinalized() {
+        return finalized;
+    }
+
+    public void setFinalized(boolean finalized) {
+        this.finalized = finalized;
     }
 }
