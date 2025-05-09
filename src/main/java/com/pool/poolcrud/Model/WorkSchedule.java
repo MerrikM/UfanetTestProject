@@ -25,18 +25,18 @@ public class WorkSchedule {
     private LocalTime closeTime;
 
     @Column(nullable = false)
-    private boolean isHoliday;
+    private boolean dayOf;
 
     @Column(nullable = false)
     private DayOfWeek dayOfWeek;
 
     public WorkSchedule() {}
 
-    public WorkSchedule(Pool pool, LocalTime openTime, LocalTime closeTime, boolean isHoliday, DayOfWeek dayOfWeek) {
+    public WorkSchedule(Pool pool, LocalTime openTime, LocalTime closeTime, boolean dayOf, DayOfWeek dayOfWeek) {
         this.pool = pool;
         this.openTime = openTime;
         this.closeTime = closeTime;
-        this.isHoliday = isHoliday;
+        this.dayOf = dayOf;
         this.dayOfWeek = dayOfWeek;
     }
 
@@ -72,12 +72,12 @@ public class WorkSchedule {
         this.closeTime = closeTime;
     }
 
-    public boolean isHoliday() {
-        return isHoliday;
+    public boolean isDayOf() {
+        return dayOf;
     }
 
-    public void setHoliday(boolean holiday) {
-        isHoliday = holiday;
+    public void setDayOf(boolean dayOf) {
+        this.dayOf = dayOf;
     }
 
     public DayOfWeek getDayOfWeek() {
