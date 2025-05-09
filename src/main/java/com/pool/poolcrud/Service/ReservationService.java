@@ -7,12 +7,14 @@ import com.pool.poolcrud.Model.TimeTable;
 import com.pool.poolcrud.Repository.ClientRepository;
 import com.pool.poolcrud.Repository.ReservationRepository;
 import com.pool.poolcrud.Repository.TimeTableRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
 // На вход идет дата записи
@@ -21,15 +23,13 @@ public class ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final ClientService clientService;
-    private final TimeTableService timeTableService;
     private final PoolService poolService;
     private final TimeTableRepository timeTableRepository;
     private final ClientRepository clientRepository;
 
-    public ReservationService(ReservationRepository reservationRepository, ClientService clientService, TimeTableService timeTableService, PoolService poolService, TimeTableRepository timeTableRepository, ClientRepository clientRepository) {
+    public ReservationService(ReservationRepository reservationRepository, ClientService clientService, PoolService poolService, TimeTableRepository timeTableRepository, ClientRepository clientRepository) {
         this.reservationRepository = reservationRepository;
         this.clientService = clientService;
-        this.timeTableService = timeTableService;
         this.poolService = poolService;
         this.timeTableRepository = timeTableRepository;
         this.clientRepository = clientRepository;
@@ -38,7 +38,7 @@ public class ReservationService {
     @Transactional(readOnly = true)
     public Reservation getById(Long id) {
         return reservationRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Запись не найдена в БД")
+                () -> new EntityNotFoundException("Запись не найдена в БД")
         );
     }
 
@@ -57,55 +57,104 @@ public class ReservationService {
     }
 
     @Transactional(readOnly = true)
-    public List<Reservation> getByReservationDay(LocalDate date) {
-        return reservationRepository.findByTimeTable_Date(date);
+    public List<Reservation> getByReservationDay(Long clientId, LocalDate date) {
+        return reservationRepository.findByTimeTable_DateAndClient_Id(date, clientId);
     }
 
     @Transactional
     public Reservation reserve(Long clientId, Long poolId, LocalDateTime dateTime) {
+        if (dateTime.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Нельзя записаться на прошедшее время");
+        }
+
         Client client = clientService.getById(clientId);
         Pool pool = poolService.getPoolById(poolId);
-
         LocalDate date = dateTime.toLocalDate();
-        LocalTime time = dateTime.toLocalTime();
 
-        TimeTable timeTable = timeTableRepository.findByPoolAndDateAndTime(pool, date, time);
+        int clientReservations = reservationRepository.countByClientAndTimeTable_Date(client, date);
+        if (clientReservations >= pool.getMaxVisitsPerDay()) {
+            throw new IllegalStateException(String.format("Лимит посещений исчерпан, в день: ", pool.getMaxVisitsPerDay(), " посещений"));
+        }
 
+        TimeTable timeTable = timeTableRepository.findByPoolAndDateAndTime(pool, date, dateTime.toLocalTime());
         if (timeTable == null) {
-            throw new IllegalStateException("Запись на не рабочее время недоступна!");
+            throw new IllegalStateException("Слот не найден в БД");
         }
 
-        if (timeTable.getCurrentBookings() >= pool.getMaxCapacity()) {
-            throw new IllegalStateException("Нет свободных место");
+        if (timeTable.getCurrentBookings() > timeTable.getRemainingCapacity()) {
+            throw new IllegalStateException("Нет свободных мест");
         }
 
-        String orderId = createOrderId(clientId, poolId, dateTime);
+        if (reservationRepository.existsByClientAndTimeTable(client, timeTable)) {
+            throw new IllegalArgumentException("Вы уже записаны на это время");
+        }
 
         Reservation reservation = new Reservation(
                 client,
                 timeTable,
                 LocalDateTime.now(),
-                orderId,
-                pool
+                createOrderId(clientId, poolId, dateTime),
+                pool,
+                false
         );
 
-        if (!existOrderId(orderId)) {
-            if (timeTable.getCurrentBookings() <= timeTable.getRemainingCapacity()) {
-                reservationRepository.save(reservation);
-
-                timeTable.setCurrentBookings(timeTable.getCurrentBookings() + 1);
-                timeTable.setRemainingCapacity(
-                        timeTable.getRemainingCapacity() - timeTable.getCurrentBookings()
-                );
-                timeTableRepository.save(timeTable);
-            } else {
-                throw new IllegalArgumentException("Свободных мест в бассейне нет");
-            }
-        } else {
-            throw new IllegalArgumentException("Вы уже записаны на это время");
-        }
+        reservationRepository.save(reservation);
+        timeTable.setCurrentBookings(timeTable.getCurrentBookings() + 1);
+        timeTable.setRemainingCapacity(timeTable.getRemainingCapacity() - 1);
+        timeTableRepository.save(timeTable);
 
         return reservation;
+    }
+
+    @Transactional
+    public List<Reservation> reserveForAFewHours(Long clientId, Long poolId, LocalDate date, LocalTime start, LocalTime end) {
+        if (start.isAfter(end)) {
+            throw new IllegalArgumentException("Время начала должно быть раньше времени окончания");
+        }
+
+        if (date.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Нельзя записаться на прошедшую дату");
+        }
+
+        Client client = clientService.getById(clientId);
+        Pool pool = poolService.getPoolById(poolId);
+
+        int maxVisitsPerDay = pool.getMaxVisitsPerDay();
+        long existingReservations = reservationRepository.countByClientAndTimeTable_Date(client, date);
+        List<TimeTable> availableSlots = timeTableRepository.findByPoolAndDateAndTimeBetween(pool, date, start, end);
+
+        if (existingReservations + availableSlots.size() > maxVisitsPerDay) {
+            throw new IllegalStateException(String.format("Лимит посещений исчерпан, в день: ", pool.getMaxVisitsPerDay(), " посещений"));
+        }
+
+        List<Reservation> reservations = new ArrayList<>();
+        for (int i = 0; i < availableSlots.size(); i++) {
+            if (availableSlots.get(i).getCurrentBookings() > availableSlots.get(i).getRemainingCapacity()) {
+                throw new IllegalStateException("Нет свободных мест");
+            }
+
+            if (reservationRepository.existsByClientAndTimeTable(client, availableSlots.get(i))) {
+                throw new IllegalArgumentException("Вы уже записаны на это время");
+            }
+
+            Reservation reservation = new Reservation(
+                    client,
+                    availableSlots.get(i),
+                    LocalDateTime.now(),
+                    createOrderId(clientId, poolId, LocalDateTime.of(date, availableSlots.get(i).getTime())),
+                    pool,
+                    false
+            );
+
+            reservationRepository.save(reservation);
+            availableSlots.get(i).setCurrentBookings(availableSlots.get(i).getCurrentBookings() + 1);
+            availableSlots.get(i).setRemainingCapacity(availableSlots.get(i).getRemainingCapacity() - 1);
+            timeTableRepository.save(availableSlots.get(i));
+
+            reservations.add(reservation);
+        }
+
+        return reservations;
     }
 
     public String createOrderId(Long clientId, Long poolId, LocalDateTime dateTime) {
@@ -119,27 +168,38 @@ public class ReservationService {
         return orderId;
     }
 
-    public boolean existOrderId(String orderId) {
-        return reservationRepository.existsByOrderId(orderId);
-    }
-
     @Transactional
     public void cancel(Long clientId, String orderId) {
         Reservation reservation = reservationRepository.findByOrderId(orderId);
+        if (reservation == null) {
+            throw new IllegalArgumentException("Запись не найдена");
+        }
+
         Client client = clientService.getById(clientId);
+        if (reservation.getClient().getId().equals(clientId) == false) {
+            throw new IllegalArgumentException("Запись не принадлежит этому клиенту");
+        }
 
         TimeTable timeTable = reservation.getTimeTable();
 
-        if (client.getReservations().isEmpty() == false) {
-            client.getReservations().remove(reservation);
-            clientRepository.save(client);
-        } else {
-            throw new IllegalArgumentException("Запись клиента не найдена");
-        }
+        client.getReservations().remove(reservation);
+        clientRepository.save(client);
 
-        if (timeTable.getCurrentBookings() > 0) {
-            timeTable.setCurrentBookings(timeTable.getCurrentBookings() - 1);
-            timeTableRepository.save(timeTable);
+        timeTable.setCurrentBookings(timeTable.getCurrentBookings() - 1);
+        timeTable.setRemainingCapacity(timeTable.getRemainingCapacity() + 1);
+        timeTableRepository.save(timeTable);
+
+        reservationRepository.delete(reservation);
+    }
+
+    @Transactional
+    public void confirmVisit(String orderId) {
+        Reservation reservation = reservationRepository.findByOrderId(orderId);
+
+        if (reservation.isFinalized() == false) {
+            reservation.setFinalized(true);
+        } else {
+            throw new IllegalStateException("Запись клиента уже подтверждена");
         }
 
         reservationRepository.delete(reservation);
